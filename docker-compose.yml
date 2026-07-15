@@ -1,6 +1,18 @@
 version: '3'
 
 services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      - TELEMETRYOS_OTLP_ENDPOINT=${TELEMETRYOS_OTLP_ENDPOINT}
+      - TELEMETRYOS_OTLP_HEADERS=${TELEMETRYOS_OTLP_HEADERS}
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped
   node-app:
     build: .
     image: node-app
