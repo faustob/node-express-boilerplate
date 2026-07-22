@@ -16,6 +16,9 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+const requestTelemetryMiddleware = require('./middlewares/telemetry');
+app.use(requestTelemetryMiddleware);
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
