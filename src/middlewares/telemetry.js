@@ -16,7 +16,7 @@ const requestDurationByTier = meter.createHistogram('business.request.duration',
 });
 
 const requestTelemetryMiddleware = (req, res, next) => {
-  const start = performance.now();
+  const start = Date.now();
   res.on('finish', () => {
     const route = (req.route && req.route.path) || req.baseUrl || 'unknown';
     const outcome = res.statusCode < 500 ? 'success' : 'failure';
@@ -26,7 +26,7 @@ const requestTelemetryMiddleware = (req, res, next) => {
       outcome,
     });
 
-    requestDurationByTier.record((performance.now() - start) / 1000, {
+    requestDurationByTier.record((Date.now() - start) / 1000, {
       route,
       tier: req.headers['x-tenant-tier'] || 'standard',
     });
