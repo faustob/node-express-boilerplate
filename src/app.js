@@ -16,6 +16,9 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+// OpenTelemetry HTTP server metrics (duration / outcomes / in-flight).
+app.use(require('./middlewares/telemetry').httpMetrics());
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
