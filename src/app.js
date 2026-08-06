@@ -10,6 +10,7 @@ const config = require('./config/config');
 const morgan = require('./config/morgan');
 const { jwtStrategy } = require('./config/passport');
 const { authLimiter } = require('./middlewares/rateLimiter');
+const { sliMetricsMiddleware } = require('./config/tracing');
 const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
@@ -20,6 +21,9 @@ if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
 }
+
+// record HTTP availability + latency SLI metrics for every request
+app.use(sliMetricsMiddleware);
 
 // set security HTTP headers
 app.use(helmet());
