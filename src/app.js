@@ -16,6 +16,9 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+// Records HTTP availability/latency SLIs for every inbound request.
+app.use(require('./middlewares/telemetry'));
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
