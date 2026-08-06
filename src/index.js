@@ -1,3 +1,6 @@
+// Start the OpenTelemetry SDK before anything else so auto-instrumentation can
+// patch http/express/mongoose as they are required below.
+require('./config/tracing');
 const mongoose = require('mongoose');
 const app = require('./app');
 const config = require('./config/config');
