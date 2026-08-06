@@ -16,6 +16,9 @@ const ApiError = require('./utils/ApiError');
 
 const app = express();
 
+// Record HTTP server availability + latency SLI metrics (must run early in the chain).
+app.use(require('./middlewares/telemetry'));
+
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
