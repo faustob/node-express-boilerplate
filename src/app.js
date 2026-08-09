@@ -14,7 +14,12 @@ const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
 
+const { httpMetricsMiddleware } = require('./config/tracing');
+
 const app = express();
+
+// Must run before the routes are mounted so res 'finish' fires for matched routes.
+app.use(httpMetricsMiddleware);
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
