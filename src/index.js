@@ -1,3 +1,5 @@
+// Start the OpenTelemetry SDK before anything else is loaded/instrumented.
+require('./config/tracing');
 const mongoose = require('mongoose');
 const app = require('./app');
 const config = require('./config/config');
