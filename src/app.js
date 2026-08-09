@@ -13,6 +13,7 @@ const { authLimiter } = require('./middlewares/rateLimiter');
 const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
+const { httpRequestOutcomes, httpRequestDurationByTier, httpActiveRequests } = require('./config/tracing');
 
 const app = express();
 
@@ -20,6 +21,36 @@ if (config.env !== 'test') {
   app.use(morgan.successHandler);
   app.use(morgan.errorHandler);
 }
+
+// record HTTP request outcome + latency SLIs (never alters the request/response flow)
+app.use((req, res, next) => {
+  const startNs = process.hrtime.bigint();
+  const baseAttributes = { 'http.request.method': req.method, 'url.scheme': req.protocol };
+  httpActiveRequests.add(1, baseAttributes);
+  let settled = false;
+  const record = () => {
+    if (settled) return;
+    settled = true;
+    const durationSeconds = Number(process.hrtime.bigint() - startNs) / 1e9;
+    // Matched route TEMPLATE (e.g. /users/:userId), never the raw path — keeps cardinality low.
+    const route = `${req.baseUrl || ''}${(req.route && req.route.path) || ''}` || 'unmatched';
+    const statusCode = res.statusCode;
+    const attributes = { ...baseAttributes, 'http.route': route, 'http.response.status_code': statusCode };
+    httpActiveRequests.add(-1, baseAttributes);
+    httpRequestOutcomes.add(1, {
+      ...attributes,
+      outcome: statusCode < 500 ? 'success' : 'failure',
+      ...(statusCode >= 500 ? { 'error.type': String(statusCode) } : {}),
+    });
+    httpRequestDurationByTier.record(durationSeconds, {
+      ...attributes,
+      tier: req.headers['x-tenant-tier'] || 'standard',
+    });
+  };
+  res.on('finish', record);
+  res.on('close', record);
+  next();
+});
 
 // set security HTTP headers
 app.use(helmet());
