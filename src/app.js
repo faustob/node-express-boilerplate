@@ -14,7 +14,12 @@ const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
 
+const { httpMetricsMiddleware } = require('./config/tracing');
+
 const app = express();
+
+// record http.server.request.duration / http.server.request.outcomes for every request
+app.use(httpMetricsMiddleware);
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
