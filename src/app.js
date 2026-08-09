@@ -13,8 +13,40 @@ const { authLimiter } = require('./middlewares/rateLimiter');
 const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
+const { getInstruments } = require('./config/tracing');
 
 const app = express();
+
+// HTTP SLI telemetry: request duration (seconds), request outcome class and in-flight requests.
+app.use((req, res, next) => {
+  // Resolved on first request, once the global MeterProvider is registered.
+  const { httpServerRequestDuration, httpServerRequestCount, httpServerActiveRequests } = getInstruments();
+  const startTime = process.hrtime.bigint();
+  const baseAttributes = {
+    'http.request.method': req.method,
+    'url.scheme': req.protocol,
+    'network.protocol.version': req.httpVersion,
+  };
+  httpServerActiveRequests.add(1, baseAttributes);
+  res.on('finish', () => {
+    const durationSeconds = Number(process.hrtime.bigint() - startTime) / 1e9;
+    // Matched route TEMPLATE only — never the raw path (keeps cardinality low).
+    const route = (req.route && `${req.baseUrl || ''}${req.route.path}`) || req.baseUrl || undefined;
+    const attributes = {
+      ...baseAttributes,
+      'http.response.status_code': res.statusCode,
+      ...(route ? { 'http.route': route } : {}),
+      ...(res.statusCode >= 400 ? { 'error.type': String(res.statusCode) } : {}),
+    };
+    httpServerActiveRequests.add(-1, baseAttributes);
+    httpServerRequestDuration.record(durationSeconds, attributes);
+    httpServerRequestCount.add(1, {
+      ...attributes,
+      outcome: res.statusCode < 500 ? 'success' : 'failure',
+    });
+  });
+  next();
+});
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
