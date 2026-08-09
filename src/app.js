@@ -13,8 +13,12 @@ const { authLimiter } = require('./middlewares/rateLimiter');
 const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
+const { httpMetricsMiddleware } = require('./config/tracing');
 
 const app = express();
+
+// Record semconv HTTP server metrics (duration + request counts) for every request.
+app.use(httpMetricsMiddleware);
 
 if (config.env !== 'test') {
   app.use(morgan.successHandler);
