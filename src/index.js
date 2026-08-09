@@ -1,3 +1,6 @@
+// OpenTelemetry SDK is registered globally here, before any instrumented module is loaded.
+require('./config/tracing');
+const { instrumentHttpServer } = require('./middlewares/httpMetrics');
 const mongoose = require('mongoose');
 const app = require('./app');
 const config = require('./config/config');
@@ -9,6 +12,7 @@ mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
   server = app.listen(config.port, () => {
     logger.info(`Listening to port ${config.port}`);
   });
+  instrumentHttpServer(server);
 });
 
 const exitHandler = () => {

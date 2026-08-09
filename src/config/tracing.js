@@ -5,10 +5,17 @@
  */
 const { NodeSDK } = require('@opentelemetry/sdk-node');
 const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+const { OTLPMetricExporter } = require('@opentelemetry/exporter-metrics-otlp-http');
+const { PeriodicExportingMetricReader } = require('@opentelemetry/sdk-metrics');
 const { trace } = require('@opentelemetry/api');
 
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter(),
+  // Metrics pipeline: endpoint comes from OTEL_EXPORTER_OTLP_* env vars (never hardcoded).
+  metricReader: new PeriodicExportingMetricReader({
+    exporter: new OTLPMetricExporter(),
+    exportIntervalMillis: Number(process.env.OTEL_METRIC_EXPORT_INTERVAL_MILLIS || 60000),
+  }),
 });
 sdk.start();
 
