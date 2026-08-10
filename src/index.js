@@ -1,7 +1,9 @@
+require('./config/tracing');
 const mongoose = require('mongoose');
 const app = require('./app');
 const config = require('./config/config');
 const logger = require('./config/logger');
+const { sdk } = require('./config/tracing');
 
 let server;
 mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
@@ -11,14 +13,19 @@ mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
   });
 });
 
+const shutdownTelemetry = () => {
+  const timeout = new Promise((resolve) => setTimeout(resolve, 2000));
+  return Promise.race([sdk.shutdown().catch(() => {}), timeout]);
+};
+
 const exitHandler = () => {
   if (server) {
     server.close(() => {
       logger.info('Server closed');
-      process.exit(1);
+      shutdownTelemetry().then(() => process.exit(1));
     });
   } else {
-    process.exit(1);
+    shutdownTelemetry().then(() => process.exit(1));
   }
 };
 
@@ -35,4 +42,5 @@ process.on('SIGTERM', () => {
   if (server) {
     server.close();
   }
+  shutdownTelemetry();
 });
