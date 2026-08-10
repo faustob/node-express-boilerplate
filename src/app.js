@@ -24,6 +24,10 @@ if (config.env !== 'test') {
 // set security HTTP headers
 app.use(helmet());
 
+// OpenTelemetry HTTP server metrics — must run before the router so it wraps every route.
+// eslint-disable-next-line global-require
+app.use(require('./config/tracing').metricsMiddleware);
+
 // parse json request body
 app.use(express.json());
 
