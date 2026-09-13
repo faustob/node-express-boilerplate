@@ -1,5 +1,7 @@
 const winston = require('winston');
+const { OpenTelemetryTransportV3 } = require('@opentelemetry/winston-transport');
 const config = require('./config');
+const { loggerProvider } = require('./tracing');
 
 const enumerateErrorFormat = winston.format((info) => {
   if (info instanceof Error) {
@@ -20,6 +22,10 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       stderrLevels: ['error'],
     }),
+    // Added alongside the console transport: bridges winston log records into
+    // the same OTel pipeline used for traces/metrics, carrying trace/span
+    // correlation automatically from the active context.
+    new OpenTelemetryTransportV3({ loggerProvider }),
   ],
 });
 
